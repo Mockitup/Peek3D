@@ -30,7 +30,10 @@ var App = {
     document.getElementById('status-vertices').textContent = formatNumber(verts) + ' verts';
     document.getElementById('status-faces').textContent = formatNumber(faces) + ' faces';
   },
-  showError: function(msg) { showError(msg); }
+  showError: function(msg) { showError(msg); },
+  onOrientDone: function() {
+    document.getElementById('btn-orient').classList.remove('active');
+  }
 };
 
 function setTitle(title) {
@@ -111,6 +114,11 @@ document.getElementById('btn-grid').addEventListener('click', function() {
 document.getElementById('btn-reset').addEventListener('click', function() {
   Viewer3D.resetCamera();
 });
+document.getElementById('btn-orient').addEventListener('click', function() {
+  var active = Viewer3D.toggleOrientMode();
+  this.classList.toggle('active', active);
+  showZoomToast(active ? 'Click a face to orient to ground' : 'Orient cancelled');
+});
 
 // Window Controls
 document.getElementById('btn-minimize').addEventListener('click', function() { sendToRust('window_minimize'); });
@@ -133,10 +141,21 @@ document.getElementById('btn-theme').addEventListener('click', function() {
 
 // Keyboard Shortcuts
 document.addEventListener('keydown', function(e) {
+  // Escape cancels orient mode
+  if (e.key === 'Escape' && Viewer3D.isOrientMode()) {
+    e.preventDefault();
+    Viewer3D.toggleOrientMode();
+    document.getElementById('btn-orient').classList.remove('active');
+    showZoomToast('Orient cancelled');
+    return;
+  }
+
   if (e.ctrlKey && e.key === 'o' && !e.shiftKey) {
     e.preventDefault();
     sendToRust('open_model');
   } else if (!e.ctrlKey && !e.altKey) {
+    // Block other shortcuts while in orient mode
+    if (Viewer3D.isOrientMode()) return;
     switch (e.key) {
       case 'ArrowLeft':
         e.preventDefault();
@@ -152,6 +171,13 @@ document.addEventListener('keydown', function(e) {
         var wf = Viewer3D.toggleWireframe();
         document.getElementById('btn-wireframe').classList.toggle('active', wf);
         showZoomToast(wf ? 'Wireframe ON' : 'Wireframe OFF');
+        break;
+      case 'e':
+      case 'E':
+        e.preventDefault();
+        var orient = Viewer3D.toggleOrientMode();
+        document.getElementById('btn-orient').classList.toggle('active', orient);
+        showZoomToast(orient ? 'Click a face to orient to ground' : 'Orient cancelled');
         break;
       case 'g':
       case 'G':
